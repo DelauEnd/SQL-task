@@ -90,7 +90,7 @@ FROM CardKeeper
 	JOIN BankAccount on CardKeeper.KeeperId = BankAccount.KeeperId
 	JOIN Card on BankAccount.AccountId = Card.AccountId
 GROUP BY BankAccount.Balance, BankAccount.AccountId, cardkeeper.Name
-HAVING BankAccount.Balance - Sum(Card.Balance) <> 0
+HAVING BankAccount.Balance - Sum(Card.Balance) < 0
 
 ---
 N7
