@@ -13,18 +13,18 @@ N2
 Получить список карточек с указанием имени владельца, баланса и названия банка
 ---
 SELECT Name, Card.Balance, Bank.Title
-FROM CardKeeper, Card, Bank, BankAccount 
-WHERE CardKeeper.KeeperId = BankAccount.KeeperId
-AND BankAccount.AccountId = Card.AccountId
-AND BankAccount.BankId = Bank.BankId
+FROM CardKeeper 
+	JOIN BankAccount on CardKeeper.KeeperId = BankAccount.KeeperId
+	JOIN Card on BankAccount.AccountId = Card.AccountId
+	JOIN Bank on  BankAccount.BankId = Bank.BankId
 
 ---
 N3
 Показать список банковских аккаунтов у которых баланс не совпадает с суммой баланса по карточкам. В отдельной колонке вывести разницу
 ---
 SELECT BankAccount.AccountId, BankAccount.Balance - Sum(Card.Balance) AS balanceDifference
-FROM Card, BankAccount
-WHERE Card.AccountId = BankAccount.AccountId 
+FROM Card 
+	JOIN BankAccount on Card.AccountId = BankAccount.AccountId
 GROUP BY BankAccount.Balance, BankAccount.AccountId
 HAVING BankAccount.Balance - Sum(Card.Balance) <> 0
 
@@ -67,14 +67,14 @@ BEGIN
 	UPDATE BankAccount 
 	SET  Balance = Balance + 10
 	WHERE AccountId = any
-						(
-						SELECT BankAccount.AccountId
-						FROM SocialStatus 
-							JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
-							JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
-							JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
-						WHERE SocialStatus.title = @Status
-						)
+		(
+		SELECT BankAccount.AccountId
+		FROM SocialStatus 
+			JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
+			JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
+			JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
+		WHERE SocialStatus.title = @Status
+		)
 END
 ---
 Вызов:
@@ -86,9 +86,9 @@ N6
 Получить список доступных средств на всех аккаунтах для каждого клиента. То есть если у клиента на банковском аккаунте 60 рублей, и у него 2 карточки по 15 рублей на каждой, то у него доступно 30 рублей для перевода на любую из карт
 ---
 SELECT CardKeeper.Name, BankAccount.AccountId, BankAccount.Balance - Sum(Card.Balance) AS freeBalance
-FROM Card, BankAccount, CardKeeper
-WHERE Card.AccountId = BankAccount.AccountId 
-	and BankAccount.KeeperId = CardKeeper.KeeperId
+FROM CardKeeper
+	JOIN BankAccount on CardKeeper.KeeperId = BankAccount.KeeperId
+	JOIN Card on BankAccount.AccountId = Card.AccountId
 GROUP BY BankAccount.Balance, BankAccount.AccountId, cardkeeper.Name
 HAVING BankAccount.Balance - Sum(Card.Balance) <> 0
 
@@ -127,6 +127,10 @@ BEGIN
 	
 	COMMIT TRANSACTION
 END
+---
+Вызов:
+exec tranzactMoneyFromAccountToCard @transferAmount = 200, @cardId = 1
+---
 
 ---
 N8
