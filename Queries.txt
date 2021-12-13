@@ -91,7 +91,16 @@ FROM CardKeeper
 	JOIN Card on BankAccount.AccountId = Card.AccountId
 GROUP BY BankAccount.Balance, BankAccount.AccountId, cardkeeper.Name
 HAVING BankAccount.Balance - Sum(Card.Balance) > 0
-
+UNION
+SELECT CardKeeper.Name, AccountId, Balance as freeBalance
+	FROM BankAccount
+		JOIN CardKeeper on CardKeeper.KeeperId = BankAccount.KeeperId
+	WHERE not exists
+		(
+		select AccountId
+		from Card
+		where Card.AccountId = BankAccount.AccountId
+		)
 ---
 N7
 Написать процедуру которая будет переводить деньги со счёта на карту этого аккаунта. Переводить БЕЗОПАСНО. То есть использовать транзакцию
