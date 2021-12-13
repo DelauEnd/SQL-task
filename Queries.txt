@@ -1,0 +1,200 @@
+---
+N1
+Покажи мне список банков у которых есть филиалы в городе X (выбери один из городов)
+---
+SELECT Bank.Title 
+FROM Bank 
+	JOIN BankBranch on Bank.BankId = BankBranch.BankId
+	JOIN Sity on Sity.SityId = BankBranch.SityId
+WHERE Sity.Title = 'Minsk'
+
+---
+N2
+Получить список карточек с указанием имени владельца, баланса и названия банка
+---
+SELECT Name, Card.Balance, Bank.Title
+FROM CardKeeper, Card, Bank, BankAccount 
+WHERE CardKeeper.KeeperId = BankAccount.KeeperId
+AND BankAccount.AccountId = Card.AccountId
+AND BankAccount.BankId = Bank.BankId
+
+---
+N3
+Показать список банковских аккаунтов у которых баланс не совпадает с суммой баланса по карточкам. В отдельной колонке вывести разницу
+---
+SELECT BankAccount.AccountId, BankAccount.Balance - Sum(Card.Balance) AS balanceDifference
+FROM Card, BankAccount
+WHERE Card.AccountId = BankAccount.AccountId 
+GROUP BY BankAccount.Balance, BankAccount.AccountId
+HAVING BankAccount.Balance - Sum(Card.Balance) <> 0
+
+---
+N4
+Вывести кол-во банковских карточек для каждого соц статуса (2 реализации, GROUP BY и подзапросом)
+---
+group by
+---
+SELECT count(Card.CardId) AS "Card count", SocialStatus.Title 
+FROM SocialStatus 
+	JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
+	JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
+	JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
+	JOIN Card on card.AccountId = BankAccount.AccountId
+GROUP BY SocialStatus.Title
+---
+подзапросом
+---
+SELECT
+	(
+	SELECT count(Card.CardId)
+	FROM SocialStatus 
+		JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
+		JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
+		JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
+		JOIN Card on card.AccountId = BankAccount.AccountId
+	WHERE SocialStatus.Title = result.Title
+	)AS cardCount, Title
+FROM SocialStatus AS result
+
+---
+N5
+Написать stored procedure которая будет добавлять по 10$ на каждый банковский аккаунт для определенного соц статуса (У каждого клиента бывают разные соц. статусы. Например, пенсионер, инвалид и прочее).
+---
+CREATE PROCEDURE SocialStatusAllowance
+@Status varchar(30)
+AS
+BEGIN
+	UPDATE BankAccount 
+	SET  Balance = Balance + 10
+	WHERE AccountId = any
+						(
+						SELECT BankAccount.AccountId
+						FROM SocialStatus 
+							JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
+							JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
+							JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
+						WHERE SocialStatus.title = @Status
+						)
+END
+---
+Вызов:
+exec SocialStatusAllowance @Status='veteran'
+---
+
+---
+N6
+Получить список доступных средств на всех аккаунтах для каждого клиента. То есть если у клиента на банковском аккаунте 60 рублей, и у него 2 карточки по 15 рублей на каждой, то у него доступно 30 рублей для перевода на любую из карт
+---
+SELECT CardKeeper.Name, BankAccount.AccountId, BankAccount.Balance - Sum(Card.Balance) AS freeBalance
+FROM Card, BankAccount, CardKeeper
+WHERE Card.AccountId = BankAccount.AccountId 
+	and BankAccount.KeeperId = CardKeeper.KeeperId
+GROUP BY BankAccount.Balance, BankAccount.AccountId, cardkeeper.Name
+HAVING BankAccount.Balance - Sum(Card.Balance) <> 0
+
+---
+N7
+Написать процедуру которая будет переводить деньги со счёта на карту этого аккаунта. Переводить БЕЗОПАСНО. То есть использовать транзакцию
+---
+CREATE PROCEDURE tranzactMoneyFromAccountToCard
+@cardId int,
+@transferAmount float
+AS
+BEGIN
+	DECLARE @accountId int
+	SET @accountId =
+	(
+		SELECT AccountId
+		FROM Card 
+		WHERE CardId = @cardId
+	)	
+
+	BEGIN TRY 
+	   BEGIN TRANSACTION
+
+	   UPDATE BankAccount SET Balance = Balance - @transferAmount
+	   WHERE AccountId = @accountId;
+
+	   UPDATE Card SET Balance = Balance + @transferAmount
+	   WHERE CardId = @cardId;
+
+	END TRY
+	
+	BEGIN CATCH
+	   ROLLBACK TRANSACTION
+	   RETURN
+	END CATCH
+	
+	COMMIT TRANSACTION
+END
+
+---
+N8
+Написать триггер на таблицы Account/Cards чтобы нельзя была занести значения в поле баланс если это противоречит условиям  (то есть нельзя изменить значение в Account на меньшее, чем сумма балансов по всем карточкам. И соответственно нельзя изменить баланс карты если в итоге сумма на картах будет больше чем баланс аккаунта)
+---
+Card trigger
+---
+CREATE TRIGGER onCardUpdate
+ON Card AFTER UPDATE
+AS
+BEGIN
+	DECLARE @accountId int
+	DECLARE @accountBalance float
+
+	SET @accountId = 
+	(
+		SELECT AccountId
+		FROM inserted
+	)
+
+	SET @accountBalance =
+	(
+		SELECT balance
+		FROM BankAccount
+		WHERE AccountId = @accountId
+	)
+
+	if @accountBalance <
+	(
+		select Sum(Card.Balance)
+		from Card
+		where Card.AccountId = @accountId
+	)
+	BEGIN
+		ROLLBACK TRANSACTION
+		print 'Отмена транзакции'
+	END
+END
+---
+BankAccount trigger
+---
+CREATE TRIGGER onBankAccountUpdate
+ON BankAccount AFTER UPDATE
+AS
+BEGIN
+	DECLARE @accountId int
+	DECLARE @accountBalance float
+
+	SET @accountId = 
+	(
+		SELECT AccountId
+		FROM inserted
+	)
+
+	SET @accountBalance =
+	(
+		SELECT balance
+		FROM inserted
+	)
+
+	if @accountBalance <
+	(
+		select Sum(Card.Balance)
+		from Card
+		where Card.AccountId = @accountId
+	)
+	BEGIN
+		ROLLBACK TRANSACTION
+		print 'Отмена транзакции'
+	END
+END

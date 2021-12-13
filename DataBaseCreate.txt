@@ -1,0 +1,61 @@
+CREATE TABLE SocialStatus
+(
+    StatusId int primary key identity(1,1),
+    Title varchar(20) not null 
+);
+
+CREATE TABLE CardKeeper
+(
+    KeeperId int primary key identity(1,1),
+    [Name] varchar(20) not null 
+);
+
+CREATE TABLE KeeperStatus
+(
+	KeeperStatusId int primary key identity(1,1),
+	StatusId int not null,
+	keeperId int not null,
+	foreign key(keeperId) references CardKeeper,
+	foreign key(StatusId) references SocialStatus
+)
+
+CREATE TABLE Sity
+(
+    SityId int primary key identity(1,1),
+    Title varchar(20) not null 
+);
+
+CREATE TABLE Bank
+(
+    BankId int primary key identity(1,1),
+    Title varchar(20) not null 
+);
+
+CREATE TABLE BankBranch
+(
+    BranchId int primary key identity(1,1),
+	BankId int not null,
+	SityId int not null,
+    Address varchar(40) not null,
+	foreign key(BankId) references Bank,
+	foreign key(SityId) references Sity
+);
+
+
+CREATE TABLE BankAccount
+(
+    AccountId int primary key identity(1,1),
+    Balance float not null, 
+	BankId int not null,
+	KeeperId int not null,
+	foreign key(BankId) references Bank,
+	foreign key(KeeperId) references CardKeeper
+);
+
+CREATE TABLE [Card]
+(
+    CardId int primary key identity(1,1),
+    Balance float not null, 
+	AccountId int not null,
+	foreign key(AccountId) references BankAccount
+);

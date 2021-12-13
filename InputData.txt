@@ -1,0 +1,70 @@
+insert into Bank (Title) values
+('Belarusbank'),
+('VTBBank'),
+('Sberbank'),
+('Priorbank'),
+('Belgazprombank');
+
+insert into Sity (Title) values
+('Polotsk'),
+('Vitebsk'),
+('Minsk'),
+('Gomel'),
+('Mogilev');
+
+insert into BankBranch (BankId, SityId, Address) values
+(1,1,'Polotsk1 address'),
+(1,2,'Vitebsk1 address'),
+(1,3,'Minsk1 address'),
+(1,4,'Gomel1 address'),
+(2,2,'Vitebsk2 address'),
+(3,5,'Mogilev1 address'),
+(4,3,'Minsk2 address'),
+(1,2,'Vitebsk3 address'),
+(5,5,'Mogilev2 address');
+
+insert into CardKeeper (Name) values
+('Dima'),
+('Oleg'),
+('Grisha'),
+('Viktor'),
+('Ivan');
+
+insert into SocialStatus (Title) values
+('Pensioner'),
+('Handicapped'),
+('Veteran');
+
+insert into KeeperStatus(KeeperId, StatusId) values
+(4,1),
+(3,2),
+(2,3),
+(4,3),
+(2,2),
+(3,1),
+(5,3),
+(1,3),
+(5,2);
+
+insert into BankAccount(KeeperId, BankId, Balance) values
+(4,1, 222),
+(1,2, 232),
+(2,3, 120),
+(1,3, 340),
+(2,2, 340),
+(3,1, 310),
+(4,3, 320),
+(1,3, 230),
+(5,2, 520);
+
+insert into Card(AccountId, Balance) values
+(4, 22),
+(1, 23),
+(2, 200),
+(1, 34),
+(2, 32),
+(3, 32),
+(4, 32),
+(1, 23),
+(5, 52);
+
