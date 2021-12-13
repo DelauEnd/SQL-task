@@ -118,6 +118,20 @@ BEGIN
 		WHERE CardId = @cardId
 	)	
 
+	DECLARE @accountBalance float
+	SET @accountBalance =
+	(
+		SELECT Balance
+		FROM BankAccount 
+		WHERE AccountId = @accountId
+	)
+
+	IF @accountBalance < @transferAmount
+	BEGIN
+		PRINT('transfer amount more than account balance')
+		RETURN
+	END
+
 	BEGIN TRY 
 	   BEGIN TRANSACTION
 
