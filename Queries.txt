@@ -34,12 +34,12 @@ N4
 ---
 group by
 ---
-SELECT count(Card.CardId) AS "Card count", SocialStatus.Title 
+SELECT count(Card.CardId) AS "Card_count", SocialStatus.Title 
 FROM SocialStatus 
-	JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
-	JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
-	JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
-	JOIN Card on card.AccountId = BankAccount.AccountId
+	LEFT JOIN KeeperStatus on KeeperStatus.StatusId = SocialStatus.StatusId 
+	LEFT JOIN CardKeeper on KeeperStatus.keeperId = CardKeeper.KeeperId 
+	LEFT JOIN BankAccount on BankAccount.KeeperId = CardKeeper.KeeperId
+	LEFT JOIN Card on card.AccountId = BankAccount.AccountId
 GROUP BY SocialStatus.Title
 ---
 подзапросом
