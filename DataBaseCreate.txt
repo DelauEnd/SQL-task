@@ -14,8 +14,8 @@ CREATE TABLE KeeperStatus
 (
 	KeeperStatusId int primary key identity(1,1),
 	StatusId int not null,
-	keeperId int not null,
-	foreign key(keeperId) references CardKeeper,
+	KeeperId int not null,
+	foreign key(KeeperId) references CardKeeper,
 	foreign key(StatusId) references SocialStatus
 )
 
